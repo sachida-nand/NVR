@@ -1,28 +1,29 @@
 import * as THREE from 'three';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-let camera, scene, renderer, reticle, controller;
-let model, hitTestSource, hitTestSourceInitialized = false;
+let camera, scene, renderer, reticle, model, hitTestSource, localSpace;
 
-// Initialize Scene
-function initScene() {
+function init() {
+  // Set up the scene
   scene = new THREE.Scene();
-
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
+  // WebGL Renderer
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
 
+  // Add Light
   const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
   light.position.set(0.5, 1, 0.25);
   scene.add(light);
 
-  // Reticle for Surface Detection
-  const geometry = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  reticle = new THREE.Mesh(geometry, material);
+  // Add Reticle (for surface detection)
+  const reticleGeometry = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+  const reticleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
   reticle.visible = false;
   scene.add(reticle);
 
@@ -34,44 +35,65 @@ function initScene() {
     scene.add(model);
   });
 
-  // Handle Window Resize
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  // AR Button
+  const arButton = ARButton.createButton(renderer, {
+    requiredFeatures: ['hit-test']
   });
+  document.body.appendChild(arButton);
+
+  // Add Resize Listener
+  window.addEventListener('resize', onWindowResize);
+
+  // AR Events
+  renderer.xr.addEventListener('sessionstart', onSessionStart);
+  renderer.xr.addEventListener('sessionend', onSessionEnd);
 }
 
-// Start AR Session
-async function startARSession() {
-  try {
-    const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test']
+function onSessionStart() {
+  const session = renderer.xr.getSession();
+  session.requestReferenceSpace('viewer').then((referenceSpace) => {
+    session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+      hitTestSource = source;
     });
+  });
 
-    renderer.xr.setSession(session);
+  session.requestReferenceSpace('local').then((space) => {
+    localSpace = space;
+  });
 
-    session.addEventListener('end', () => {
-      hitTestSource = null;
-      hitTestSourceInitialized = false;
-    });
+  renderer.setAnimationLoop(render);
+}
 
-    initializeHitTestSource(session);
-    renderer.setAnimationLoop(render);
-  } catch (error) {
-    console.error('Failed to start AR session:', error);
-    alert('Failed to start AR session. Ensure your device and browser support WebXR.');
+function onSessionEnd() {
+  hitTestSource = null;
+  renderer.setAnimationLoop(null);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function render(_, frame) {
+  if (hitTestSource && frame) {
+    const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+    if (hitTestResults.length > 0) {
+      const hit = hitTestResults[0];
+      const pose = hit.getPose(localSpace);
+
+      reticle.matrix.fromArray(pose.transform.matrix);
+      reticle.visible = true;
+    } else {
+      reticle.visible = false;
+    }
   }
+
+  renderer.render(scene, camera);
 }
 
-// Initialize Hit Test Source
-async function initializeHitTestSource(session) {
-  const viewerSpace = await session.requestReferenceSpace('viewer');
-  hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-  hitTestSourceInitialized = true;
-}
-
-// Placement on Surface
+// Add Model on Reticle
 function onSelect() {
   if (reticle.visible && model) {
     model.position.setFromMatrixPosition(reticle.matrix);
@@ -79,54 +101,5 @@ function onSelect() {
   }
 }
 
-// Render Loop
-function render(_, frame) {
-  if (!hitTestSourceInitialized || !frame) return;
-
-  const session = renderer.xr.getSession();
-  const referenceSpace = renderer.xr.getReferenceSpace();
-  const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-  if (hitTestResults.length > 0) {
-    const hit = hitTestResults[0];
-    const pose = hit.getPose(referenceSpace);
-    reticle.matrix.fromArray(pose.transform.matrix);
-    reticle.visible = true;
-  } else {
-    reticle.visible = false;
-  }
-
-  renderer.render(scene, camera);
-}
-
-// Start AR with Button (for User Activation)
-function setupStartARButton() {
-  const button = document.createElement('button');
-  button.textContent = 'Start AR';
-  button.style.position = 'absolute';
-  button.style.top = '50%';
-  button.style.left = '50%';
-  button.style.transform = 'translate(-50%, -50%)';
-  button.style.padding = '1em';
-  button.style.fontSize = '1.2em';
-  button.style.backgroundColor = '#007BFF';
-  button.style.color = '#FFF';
-  button.style.border = 'none';
-  button.style.borderRadius = '5px';
-  button.style.cursor = 'pointer';
-
-  button.addEventListener('click', () => {
-    startARSession();
-    button.remove();
-  });
-
-  document.body.appendChild(button);
-}
-
-// Initialize
-if (navigator.xr) {
-  initScene();
-  setupStartARButton();
-} else {
-  console.error('WebXR not supported on this device/browser.');
-}
+// Initialize AR
+init();
