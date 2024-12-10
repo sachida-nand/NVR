@@ -33,11 +33,12 @@ function init() {
     model = gltf.scene;
     model.visible = false;
     scene.add(model);
+    console.log('Model loaded successfully');
   });
 
   // AR Button
   const arButton = ARButton.createButton(renderer, {
-    requiredFeatures: ['hit-test']
+    requiredFeatures: ['hit-test'],
   });
   document.body.appendChild(arButton);
 
@@ -54,6 +55,7 @@ function onSessionStart() {
   session.requestReferenceSpace('viewer').then((referenceSpace) => {
     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
       hitTestSource = source;
+      console.log('Hit test source initialized');
     });
   });
 
@@ -98,8 +100,12 @@ function onSelect() {
   if (reticle.visible && model) {
     model.position.setFromMatrixPosition(reticle.matrix);
     model.visible = true;
+    console.log('Model placed at', model.position);
   }
 }
 
 // Initialize AR
 init();
+
+// Add event listener for touch interaction
+renderer.xr.getSession()?.addEventListener('select', onSelect);
