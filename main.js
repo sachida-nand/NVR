@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let camera, scene, renderer, reticle, controller;
 let model, hitTestSource, hitTestSourceInitialized = false;
 
-// Initialize the Scene
+// Initialize Scene
 function initScene() {
   scene = new THREE.Scene();
 
@@ -19,7 +19,7 @@ function initScene() {
   light.position.set(0.5, 1, 0.25);
   scene.add(light);
 
-  // Add reticle for placement
+  // Reticle for Surface Detection
   const geometry = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   reticle = new THREE.Mesh(geometry, material);
@@ -34,14 +34,14 @@ function initScene() {
     scene.add(model);
   });
 
-  // Handle Resize
+  // Handle Window Resize
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Prevent Gesture Zooming
+  // Disable Gesture Zooming
   document.body.style.touchAction = 'none';
 }
 
@@ -53,6 +53,7 @@ async function startARSession() {
     });
 
     renderer.xr.setSession(session);
+
     session.addEventListener('end', () => {
       hitTestSource = null;
       hitTestSourceInitialized = false;
@@ -72,7 +73,7 @@ async function initializeHitTestSource(session) {
   hitTestSourceInitialized = true;
 }
 
-// Handle Placement
+// Placement on Surface
 function onSelect() {
   if (reticle.visible && model) {
     model.position.setFromMatrixPosition(reticle.matrix);
@@ -100,9 +101,10 @@ function render(_, frame) {
   renderer.render(scene, camera);
 }
 
-// Setup User Activation
-function setupUserActivation() {
+// Start AR with Button (for User Activation)
+function setupStartARButton() {
   const button = document.createElement('button');
+  button.textContent = 'Start AR';
   button.style.position = 'absolute';
   button.style.top = '50%';
   button.style.left = '50%';
@@ -112,21 +114,21 @@ function setupUserActivation() {
   button.style.backgroundColor = '#007BFF';
   button.style.color = '#FFF';
   button.style.border = 'none';
+  button.style.borderRadius = '5px';
   button.style.cursor = 'pointer';
-  button.textContent = 'Start AR';
 
   button.addEventListener('click', () => {
-    button.remove(); // Remove button after session starts
     startARSession();
+    button.remove();
   });
 
   document.body.appendChild(button);
 }
 
-// Initialize Everything
+// Initialize
 if (navigator.xr) {
   initScene();
-  setupUserActivation();
+  setupStartARButton();
 } else {
-  console.error('WebXR not supported on this browser.');
+  console.error('WebXR not supported on this device/browser.');
 }
