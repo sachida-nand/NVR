@@ -2,25 +2,36 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <title>AR with Surface Detection</title>
-    <style>
-        body {
-            margin: 0;
-            touch-action: none;
-            /* Prevent pinch-to-zoom */
-            overflow: hidden;
-            /* Avoid scroll issues */
-            width: 100%;
-            height: 100%;
-        }
+  <meta charset="utf-8">
+  <title>AR with Surface Detection</title>
+  <style>
+    body {
+      margin: 0;
+      touch-action: none;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
 
-        canvas {
-            display: block;
-            /* Ensure the WebGL canvas is fullscreen */
-        }
-    </style>
-    <script type="importmap">
+    canvas {
+      display: block;
+    }
+
+    #log-container {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+      padding: 10px;
+      box-sizing: border-box;
+      z-index: 9999;
+    }
+  </style>
+  <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
@@ -31,7 +42,8 @@
 </head>
 
 <body>
-    <script type="module" src="main.js"></script>
+  <div id="log-container"></div>
+  <script type="module" src="main.js"></script>
 </body>
 
 </html>

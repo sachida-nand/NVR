@@ -5,6 +5,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let camera, scene, renderer, reticle, model, hitTestSource, localSpace;
 
 function init() {
+  logMessage('Initializing AR...');
+
   // Set up the scene
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -33,7 +35,7 @@ function init() {
     model = gltf.scene;
     model.visible = false;
     scene.add(model);
-    console.log('Model loaded successfully');
+    logMessage('Model loaded successfully');
   });
 
   // AR Button
@@ -51,11 +53,13 @@ function init() {
 }
 
 function onSessionStart() {
+  logMessage('AR session started.');
+
   const session = renderer.xr.getSession();
   session.requestReferenceSpace('viewer').then((referenceSpace) => {
     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
       hitTestSource = source;
-      console.log('Hit test source initialized');
+      logMessage('Hit test source initialized.');
     });
   });
 
@@ -67,11 +71,13 @@ function onSessionStart() {
 }
 
 function onSessionEnd() {
+  logMessage('AR session ended.');
   hitTestSource = null;
   renderer.setAnimationLoop(null);
 }
 
 function onWindowResize() {
+  logMessage('Window resized.');
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -87,8 +93,10 @@ function render(_, frame) {
 
       reticle.matrix.fromArray(pose.transform.matrix);
       reticle.visible = true;
+      logMessage('Surface detected.');
     } else {
       reticle.visible = false;
+      logMessage('No surface detected.');
     }
   }
 
@@ -100,7 +108,20 @@ function onSelect() {
   if (reticle.visible && model) {
     model.position.setFromMatrixPosition(reticle.matrix);
     model.visible = true;
-    console.log('Model placed at', model.position);
+    logMessage(`Model placed at position: ${model.position.toArray()}`);
+  }
+}
+
+// Logging Function
+function logMessage(message) {
+  const logContainer = document.getElementById('log-container');
+  if (logContainer) {
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logContainer.appendChild(logEntry);
+
+    // Automatically scroll to the bottom
+    logContainer.scrollTop = logContainer.scrollHeight;
   }
 }
 
