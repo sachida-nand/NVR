@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let camera, scene, renderer, reticle, model, hitTestSource, localSpace;
 
 function init() {
-  logMessage('Initializing AR...');
+  console.log('Initializing AR...');
 
   // Set up the scene
   scene = new THREE.Scene();
@@ -22,8 +22,8 @@ function init() {
   light.position.set(0.5, 1, 0.25);
   scene.add(light);
 
-  // Add Reticle (for surface detection)
-  const reticleGeometry = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+  // Add Reticle
+  const reticleGeometry = new THREE.RingGeometry(0.1, 0.12, 32).rotateX(-Math.PI / 2);
   const reticleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
   reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
   reticle.visible = false;
@@ -34,8 +34,9 @@ function init() {
   loader.load('model.glb', (gltf) => {
     model = gltf.scene;
     model.visible = false;
+    model.scale.set(0.1, 0.1, 0.1); // Adjust scale as needed
     scene.add(model);
-    logMessage('Model loaded successfully');
+    console.log('Model loaded successfully');
   });
 
   // AR Button
@@ -53,13 +54,13 @@ function init() {
 }
 
 function onSessionStart() {
-  logMessage('AR session started.');
+  console.log('AR session started.');
 
   const session = renderer.xr.getSession();
   session.requestReferenceSpace('viewer').then((referenceSpace) => {
     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
       hitTestSource = source;
-      logMessage('Hit test source initialized.');
+      console.log('Hit test source initialized.');
     });
   });
 
@@ -71,13 +72,12 @@ function onSessionStart() {
 }
 
 function onSessionEnd() {
-  logMessage('AR session ended.');
+  console.log('AR session ended.');
   hitTestSource = null;
   renderer.setAnimationLoop(null);
 }
 
 function onWindowResize() {
-  logMessage('Window resized.');
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -91,37 +91,24 @@ function render(_, frame) {
       const hit = hitTestResults[0];
       const pose = hit.getPose(localSpace);
 
+      // Update reticle position and orientation
       reticle.matrix.fromArray(pose.transform.matrix);
       reticle.visible = true;
-      logMessage('Surface detected.');
     } else {
       reticle.visible = false;
-      logMessage('No surface detected.');
     }
   }
 
   renderer.render(scene, camera);
 }
 
-// Add Model on Reticle
+// Place Model at Reticle
 function onSelect() {
   if (reticle.visible && model) {
     model.position.setFromMatrixPosition(reticle.matrix);
+    model.quaternion.setFromRotationMatrix(reticle.matrix);
     model.visible = true;
-    logMessage(`Model placed at position: ${model.position.toArray()}`);
-  }
-}
-
-// Logging Function
-function logMessage(message) {
-  const logContainer = document.getElementById('log-container');
-  if (logContainer) {
-    const logEntry = document.createElement('div');
-    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-    logContainer.appendChild(logEntry);
-
-    // Automatically scroll to the bottom
-    logContainer.scrollTop = logContainer.scrollHeight;
+    console.log(`Model placed at position: ${model.position.toArray()}`);
   }
 }
 
