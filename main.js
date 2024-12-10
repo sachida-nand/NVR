@@ -99,6 +99,7 @@ function render(_, frame) {
     }
   }
 
+  // Render the scene
   renderer.render(scene, camera);
 }
 
@@ -115,5 +116,8 @@ function onSelect() {
 // Initialize AR
 init();
 
-// Add event listener for touch interaction
-renderer.xr.getSession()?.addEventListener('select', onSelect);
+// Add event listener for placing the model
+renderer.xr.addEventListener('sessionstart', () => {
+  const session = renderer.xr.getSession();
+  session.addEventListener('select', onSelect);
+});
