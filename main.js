@@ -94,6 +94,13 @@ function render(_, frame) {
       // Update reticle position and orientation
       reticle.matrix.fromArray(pose.transform.matrix);
       reticle.visible = true;
+
+      // If the reticle is visible, attempt to place the model
+      if (model) {
+        model.position.setFromMatrixPosition(reticle.matrix);
+        model.quaternion.setFromRotationMatrix(reticle.matrix);
+        model.visible = true;
+      }
     } else {
       reticle.visible = false;
     }
@@ -103,21 +110,5 @@ function render(_, frame) {
   renderer.render(scene, camera);
 }
 
-// Place Model at Reticle
-function onSelect() {
-  if (reticle.visible && model) {
-    model.position.setFromMatrixPosition(reticle.matrix);
-    model.quaternion.setFromRotationMatrix(reticle.matrix);
-    model.visible = true;
-    console.log(`Model placed at position: ${model.position.toArray()}`);
-  }
-}
-
 // Initialize AR
 init();
-
-// Add event listener for placing the model
-renderer.xr.addEventListener('sessionstart', () => {
-  const session = renderer.xr.getSession();
-  session.addEventListener('select', onSelect);
-});
