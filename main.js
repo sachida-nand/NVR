@@ -40,9 +40,6 @@ function initScene() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
-  // Disable Gesture Zooming
-  document.body.style.touchAction = 'none';
 }
 
 // Start AR Session
@@ -63,6 +60,7 @@ async function startARSession() {
     renderer.setAnimationLoop(render);
   } catch (error) {
     console.error('Failed to start AR session:', error);
+    alert('Failed to start AR session. Ensure your device and browser support WebXR.');
   }
 }
 
